@@ -14,6 +14,37 @@ async function main() {
     ],
     skipDuplicates: true,
   });
+
+  // seed prodotti
+  await prisma.product.createMany({
+    data: [
+      { name: "Prodotto A", sku: "A-100", price: 9.99, stock: 100 },
+      { name: "Prodotto B", sku: "B-200", price: 19.99, stock: 50 },
+    ],
+    skipDuplicates: true,
+  });
+
+  // sample order (best-effort: only if customer exists and products exist)
+  const customer = await prisma.user.findUnique({ where: { email: 'customer@test.com' } });
+  const prodA = await prisma.product.findUnique({ where: { sku: 'A-100' } });
+  const prodB = await prisma.product.findUnique({ where: { sku: 'B-200' } });
+
+  if (customer && prodA && prodB) {
+    const order = await prisma.order.create({
+      data: {
+        userId: customer.id,
+        total: 29.98,
+        status: 'completed',
+        items: {
+          create: [
+            { productId: prodA.id, quantity: 1, unitPrice: prodA.price },
+            { productId: prodB.id, quantity: 1, unitPrice: prodB.price },
+          ],
+        },
+      },
+      include: { items: true }
+    });
+  }
 }
 
 main()
